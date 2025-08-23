@@ -1,0 +1,123 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="w-full max-w-md p-8 space-y-8 bg-white rounded-2xl shadow-lg">
+        <div class="text-center">
+            <h1 class="text-4xl font-bold text-gray-800">Weather Finder</h1>
+            <p class="mt-2 text-gray-600">Get the current weather for any city</p>
+        </div>
+
+        <form method="post" class="space-y-6" id="weatherForm">
+            {% csrf_token %}
+            <div class="relative">
+                <input type="text" id="cityInput" name="city_name" autocomplete="off" class="w-full px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Start typing a city name...">
+                <button type="submit" class="absolute top-0 right-0 px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-r-lg border border-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300">
+                    Get Weather
+                </button>
+                <div id="autocomplete-results" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg hidden"></div>
+            </div>
+        </form>
+
+       
+        {% if weather_data.city %}
+        <div class="p-6 mt-8 bg-blue-50 border border-blue-200 rounded-lg text-center">
+            <h2 class="text-2xl font-semibold text-gray-700">{{ weather_data.city }}</h2>
+            
+            
+            <div class="flex items-center justify-center mt-4">
+                <img src="http://openweathermap.org/img/w/{{ weather_data.icon }}.png" alt="Weather Icon" class="w-20 h-20">
+                <div class="ml-4 text-left">
+                    <p class="text-5xl font-bold text-gray-800">{{ weather_data.temperature_celsius }}° C</p>
+                    <p class="text-lg text-gray-500">{{ weather_data.temperature_kelvin }} K</p>
+                </div>
+            </div>
+            <p class="text-lg text-gray-600 capitalize mt-2">{{ weather_data.description }}</p>
+
+          
+            <hr class="my-4 border-t border-blue-200">
+
+          
+            <div class="flex justify-around text-gray-700">
+                <div class="text-center">
+                    <p class="font-semibold">Humidity</p>
+                    <p class="text-lg">{{ weather_data.humidity }}%</p>
+                </div>
+                <div class="text-center">
+                    <p class="font-semibold">Wind Speed</p>
+                    <p class="text-lg">{{ weather_data.wind_speed }} m/s</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+       
+        {% if error_message %}
+        <div class="p-4 mt-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+            <span class="font-medium">Error!</span> {{ error_message }}
+        </div>
+        {% endif %}
+    </div>
+
+   
+    <script>
+        const cityInput = document.getElementById('cityInput');
+        const resultsContainer = document.getElementById('autocomplete-results');
+        const weatherForm = document.getElementById('weatherForm');
+        let cities = [];
+
+        fetch("{% static 'weather_app/cities.json' %}")
+            .then(response => response.json())
+            .then(data => {
+                cities = data;
+            });
+
+        cityInput.addEventListener('keyup', (e) => {
+            const inputText = cityInput.value.toLowerCase();
+            resultsContainer.innerHTML = '';
+
+            if (inputText.length > 0) {
+                const filteredCities = cities.filter(city => city.toLowerCase().startsWith(inputText));
+
+                if (filteredCities.length > 0) {
+                    resultsContainer.classList.remove('hidden');
+                    filteredCities.forEach(city => {
+                        const cityElement = document.createElement('div');
+                        cityElement.textContent = city;
+                        cityElement.className = 'p-2 hover:bg-gray-100 cursor-pointer';
+                        
+                        cityElement.addEventListener('click', () => {
+                            cityInput.value = city;
+                            resultsContainer.classList.add('hidden');
+                            weatherForm.submit();
+                        });
+                        resultsContainer.appendChild(cityElement);
+                    });
+                } else {
+                    resultsContainer.classList.add('hidden');
+                }
+            } else {
+                resultsContainer.classList.add('hidden');
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (e.target !== cityInput) {
+                resultsContainer.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
